@@ -10,7 +10,7 @@ open Ball
 open Score
 
 let configureWorld (world: Container) =
-    [ yield! configureLogo world
+    [ yield! systems world
       yield! configureBall world
       yield! configurePlayer world
       yield! configureScore world
@@ -18,7 +18,7 @@ let configureWorld (world: Container) =
       // quit game system
       world.On<Update>(fun e ->
           if
-              (GamePad.GetState(PlayerIndex.One).Buttons.Back = ButtonState.Pressed
-               || Keyboard.GetState().IsKeyDown(Keys.Escape))
+              GamePad.GetState(PlayerIndex.One).Buttons.Back = ButtonState.Pressed
+              || Keyboard.GetState().IsKeyDown(Keys.Escape)
           then
               e.Game.Exit()) ]

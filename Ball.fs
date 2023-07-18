@@ -1,12 +1,10 @@
 ﻿module Ball
 
 open Events
-open Game
 open Garnet.Composition
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Components
-open Types
 
 let private initialSpeed = 3f
 let private initialVelocity = Vector2 initialSpeed
@@ -19,9 +17,11 @@ let private createBall (game: Game) =
 let configureBall (world: Container) =
     [ world.On(fun (LoadContent game) -> world.Create().With(createBall game) |> ignore)
 
-      world.On(
-          fun (Start game) struct (eid: Eid, ball: Ball) ->
-              let entity = world.Get eid
+      world.On
+      <| fun (Start game) ->
+          for r in world.Query<Eid, Ball>() do
+              let entity = world.Get r.Value1
+              let ball = r.Value2
 
               let position =
                   Vector2(
@@ -34,76 +34,65 @@ let configureBall (world: Container) =
               entity.Add { Position = position }
               entity.Add(Velocity initialVelocity)
 
-              eid
-          |> Join.update2
-          |> Join.over world
-      )
+      world.On<Update>
+      <| fun e ->
+          for r in world.Query<Velocity, Translate, Ball>() do
+              let struct (Velocity velocity, { Translate.Position = pos }, ball) = r.Values
+              let screenHeight = single e.Game.GraphicsDevice.Viewport.Height
 
-      world.On<Update>(
-          fun (e: Update) struct (Velocity velocity as velDefault, translate: Translate, ball: Ball) ->
-              let y = translate.Position.Y
+              if pos.Y + ball.Size > screenHeight || pos.Y < 0f then
+                  r.Value1 <- velocity.WithY(-velocity.Y) |> Velocity
 
-              if y + ball.Size > single e.Game.GraphicsDevice.Viewport.Height || y < 0f then
-                  velocity.WithY(-velocity.Y) |> Velocity
-              else
-                  velDefault
+      world.On<Update>
+      <| fun _ ->
+          for r in world.Query<Translate, Velocity, Ball>() do
+              let struct (translate, Velocity velocity, _) = r.Values
 
-          |> Join.update3
-          |> Join.over world
-      )
+              r.Value1 <-
+                  { translate with
+                      Position = translate.Position + velocity }
 
-      world.On<Update>(
-          fun _ struct (translate: Translate, Velocity velocity, _: Ball) ->
-              { translate with
-                  Position = translate.Position + velocity }
-          |> Join.update3
-          |> Join.over world
-      )
+      world.On<Update>
+      <| fun e ->
+          for r in world.Query<Translate, Ball>() do
+              let struct (translate, ball) = r.Values
 
-      world.On<Update>(
-          fun (e: Update) struct (translate: Translate, ball: Ball) ->
               let player1Point =
                   translate.Position.X + ball.Size > single e.Game.GraphicsDevice.Viewport.Width
 
               let player2Point = translate.Position.X < 0f
 
               if player1Point then
-                  world.Send { PlayerIndex = P1; Game = e.Game }
+                  world.Send { PlayerIndex = Player1; Game = e.Game }
               elif player2Point then
-                  world.Send { PlayerIndex = P2; Game = e.Game }
+                  world.Send { PlayerIndex = Player2; Game = e.Game }
 
-          |> Join.iter2
-          |> Join.over world
-      )
-
-      world.On(
-          fun (s: ScoreIncrease) struct (transform: Translate, ball: Ball) ->
+      world.On<ScoreIncrease>
+      <| fun s ->
+          for r in world.Query<Translate, Ball>() do
+              let struct (translate, ball) = r.Values
               let width = single s.Game.GraphicsDevice.Viewport.Width
               let height = single s.Game.GraphicsDevice.Viewport.Height
               let center = vec (width / 2f - ball.Size / 2f) (height / 2f - ball.Size / 2f)
-              { transform with Position = center }
-          |> Join.update2
-          |> Join.over world
-      )
+              r.Value1 <- { translate with Position = center }
 
-      world.On<ScoreIncrease>(
-          fun _ struct (Velocity velocity, _: Ball) ->
+      world.On<ScoreIncrease>
+      <| fun _ ->
+          for r in world.Query<Velocity, Ball>() do
+              let struct (Velocity velocity, _) = r.Values
               let x = if velocity.X > 0f then -initialSpeed else initialSpeed
               let y = if velocity.Y > 0f then -initialSpeed else initialSpeed
-              Velocity.create x y
-          |> Join.update2
-          |> Join.over world
-      )
+              r.Value1 <- Velocity.create x y
 
-      world.On<Collisions.BallAndPaddle>(fun e ->
-          let entity = world.Get e.BallEid
-          let x = (-e.BallVelocity.X) + if e.BallVelocity.X > 0f then 0.1f else -0.1f
+      world.On<CollisionInfo>
+      <| fun e ->
+          let entity = world.Get e.Eid
+          let vel = if e.Velocity.X > 0f then 0.1f else -0.1f
+          let x = (-e.Velocity.X) + vel
+          e.Velocity.WithX(x) |> Velocity |> entity.Add
 
-          entity.Add(e.BallVelocity.WithX(x) |> Velocity))
-
-      world.On<Draw>(
-          fun draw struct (translate: Translate, b: Ball) ->
-              draw.SpriteBatch.Draw(b.Texture, (rect translate.Position (Vector2 b.Size)), Color.White)
-          |> Join.iter2
-          |> Join.over world
-      ) ]
+      world.On<Draw>
+      <| fun draw ->
+          for r in world.Query<Translate, Ball>() do
+              let struct (translate, b) = r.Values
+              draw.SpriteBatch.Draw(b.Texture, (rect translate.Position (Vector2 b.Size)), Color.White) ]

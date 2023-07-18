@@ -19,12 +19,9 @@
     <EmbeddedResource Include="Icon.bmp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Types.fs" />
-    <Compile Include="Vector.fs" />
+    <Compile Include="Lib.fs" />
     <Compile Include="Events.fs" />
     <Compile Include="Components.fs" />
-    <Compile Include="Collisions.fs" />
-    <Compile Include="Keyboard.fs" />
     <Compile Include="Logo.fs" />
     <Compile Include="Player.fs" />
     <Compile Include="Ball.fs" />

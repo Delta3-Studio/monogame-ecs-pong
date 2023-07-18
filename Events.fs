@@ -1,9 +1,8 @@
-module Events
+namespace Events
 
 open System
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
-open Types
 
 [<Struct>]
 type Start =
@@ -30,5 +29,4 @@ type Draw =
       SpriteBatch: SpriteBatch }
 
 [<Struct>]
-type ScoreIncrease =
-    { PlayerIndex: PlayerIndex; Game: Game }
+type ScoreIncrease = { PlayerIndex: PlayerName; Game: Game }

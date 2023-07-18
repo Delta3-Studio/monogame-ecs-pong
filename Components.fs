@@ -1,8 +1,7 @@
-﻿module Components
+﻿namespace Components
 
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
-open Types
 
 [<Struct>]
 type Translate = { Position: Vector2 }
@@ -20,7 +19,7 @@ module Velocity =
     let create x y = Vector2(x, y) |> Velocity
 
 [<Struct>]
-type Score = { Player: PlayerIndex; Value: byte }
+type Score = { Player: PlayerName; Value: byte }
 
 [<Struct>]
 type GameText =
@@ -34,7 +33,7 @@ type Logo = { Texture: Texture2D; Speed: single }
 type Player =
     { Texture: Texture2D
       Size: Vector2
-      Index: PlayerIndex }
+      Index: PlayerName }
 
 [<Struct>]
 type Ball = { Size: single; Texture: Texture2D }

@@ -1,3 +1,13 @@
-﻿module Types
+﻿namespace Types
 
-type PlayerIndex = P1 | P2
+[<Measure>]
+type rad
+
+[<Measure>]
+type second
+
+type Angle = float32<rad>
+
+type PlayerIndex =
+    | P1
+    | P2
